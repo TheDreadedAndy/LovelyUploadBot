@@ -9,7 +9,7 @@ Install Python 3, then run:
 sudo pip install praw
 sudo pip install --upgrade google-api-python-client
 ```
-Additionally, you will need a Youtube API key from developers.google.com. Next, you will need to create a Reddit project for your bot, and collect its ID and Secret. More information can be found in the documentation for PRAW. This information will need to be compiled into a text file of the following format, named "keys.txt":
+Additionally, you will need a Youtube API key from developers.google.com. Next, you will need to create a Reddit project for your bot, and collect its ID and Secret. More information can be found in the documentation for PRAW. This information will need to be compiled into a text file of the following format, named "keys.txt," which needs to be placed in the same folder as the script:
 ```
 <Youtube API Key>
 <Reddit ID>
