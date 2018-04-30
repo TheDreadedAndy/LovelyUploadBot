@@ -1,4 +1,4 @@
-#The Rumor Come Out: Does /u/General_Scales is Bot?
+# The Rumor Come Out: Does /u/General_Scales is Bot?
 
 LovelyUploadBot is a python script that pulls videos from a playlist and uploads them to Reddit, whenever new videos are added. The obvious application for this bot is it's usage on a channels upload playlist, which is why it was created.
 
