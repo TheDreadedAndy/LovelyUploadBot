@@ -7,7 +7,7 @@ from googleapiclient.errors import HttpError # Youtube Errors
 VERBOSE = True # Setting to false suppresses mundane information and most warnings.
 GRUMPS_NAME = 'Game Grumps'
 GRUMPS_PL = 'UU9CuvdOVfMPvKCiwdGKL3cQ' # Uploads playlist of Game Grumps YouTube channel.
-GRUMPS_SUBREDDIT = 'gamegrumps' # Subreddit new videos will be submitted to.
+GRUMPS_SUBREDDIT = 'tdasplayground' # Subreddit new videos will be submitted to.
 GRUMPOUT_NAME = 'Grump Out'
 GRUMPOUT_PL = 'UUAQ0o3l-H3y_n56C3yJ9EHA' # Uploads playlist for Grump Out.
 VID_TITLE = 0
@@ -20,6 +20,8 @@ def main():
     gameGrumps = Youtuber()
     grumpOut = Youtuber()
     initYoutuber(youtube, reddit, gameGrumps, GRUMPS_NAME, GRUMPS_PL, GRUMPS_SUBREDDIT)
+    gameGrumps.numVids -= 1
+    gameGrumps.vidList.remove('p3dMg5t0xnY')
     initYoutuber(youtube, reddit, grumpOut, GRUMPOUT_NAME, GRUMPOUT_PL, GRUMPS_SUBREDDIT)
     verbose('Done!', override=True)
     # Checks for new videos and uploads them when they appear.
@@ -73,6 +75,7 @@ def initYoutuber(youtube, reddit, youtuber, name, uploadPl, sub):
     youtuber.pl = uploadPl
     # The video list is used later to track when a new video is uploaded.
     youtuber.vidList = initVidList(youtube, youtuber)
+    youtuber.uploadQueue = set()
     verbose("Initialized channel %s." % (youtuber.name), override=True)
 
 def initVidList(youtube, youtuber):
@@ -87,15 +90,12 @@ def initVidList(youtube, youtuber):
             vidList.add(id)
         # Prevents the loop from ending until we know the ID of every video.
         if len(vidList) >= youtuber.numVids: moreVids = False
-        # Functionally, this is an if statement that checks if there is another page.
-        # Conceptually, this is terrible code.
-        try:
-            pl['nextPageToken']
+        # Loads the next page if there is one.
+        if 'nextPageToken' in pl.keys():
             https, pl = getPlaylistItems(youtube, youtuber, https=https, pl=pl)
-        except:
-            if moreVids:
-                verbose('Warning: Loop reached while generating video list!')
-                https, pl = getPlaylistItems(youtube, youtuber)
+        elif moreVids:
+            verbose('Warning: Loop reached while generating video list!')
+            https, pl = getPlaylistItems(youtube, youtuber)
     return vidList
 
 # A decorator that ensures getPlaylistItems() will execute until it gets a response.
@@ -126,13 +126,14 @@ def getPlaylistItems(youtube, youtuber, https=None, pl=None):
     return https, https.execute()
 
 def updateYoutuber(youtube, youtuber):
-    newUploads = getLatestVideo(youtube, youtuber)
-    if newUploads:
+    getLatestVideo(youtube, youtuber)
+    if youtuber.uploadQueue:
         verbose("Found new content uploaded by %s!" % (youtuber.name), override=True)
-        for vid in newUploads:
+        for vid in youtuber.uploadQueue.copy():
             try:
                 youtuber.subreddit.submit(title=vid[VID_TITLE], url=vid[VID_URL],\
                                           resubmit=True, send_replies=False)
+                youtuber.uploadQueue.remove(vid)
                 verbose('Submitted video \"%s\"' % (vid[VID_TITLE]), override=True)
             except Exception as e:
                 verbose(e, override=True)
@@ -148,7 +149,6 @@ def getLatestVideo(youtube, youtuber):
     dVids = newNumVids - youtuber.numVids
     youtuber.numVids = newNumVids
     i = 0
-    newUploads = []
     while i < dVids:
         # Searches each page of the playlist for new videos until it has found them all.
         for item in pl['items']:
@@ -157,18 +157,14 @@ def getLatestVideo(youtube, youtuber):
                 title = item['snippet']['title']
                 url = "https://www.youtube.com/watch?v=%s" % (id)
                 youtuber.vidList.add(id)
-                newUploads.append((title, url))
+                youtuber.uploadQueue.add((title, url))
                 i += 1
-        # Functionally, this is an if statement that checks if there is another page.
-        # Conceptually, this is terrible code.
-        try:
-            pl['nextPageToken']
+        # Loads the next page if there is one.
+        if 'nextPageToken' in pl.keys():
             https, pl = getPlaylistItems(youtube, youtuber, https=https, pl=pl)
-        except:
-            if i < dVids:
-                verbose('Warning: Loop reached while searching for latest video!')
-                https, pl = getPlaylistItems(youtube, youtuber)
-    return newUploads
+        elif i < dVids:
+            verbose('Warning: Loop reached while searching for latest video!')
+            https, pl = getPlaylistItems(youtube, youtuber)
 
 class Youtuber(object): pass
 
