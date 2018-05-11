@@ -7,7 +7,7 @@ from googleapiclient.errors import HttpError # Youtube Errors
 VERBOSE = True # Setting to false suppresses mundane information and most warnings.
 GRUMPS_NAME = 'Game Grumps'
 GRUMPS_PL = 'UU9CuvdOVfMPvKCiwdGKL3cQ' # Uploads playlist of Game Grumps YouTube channel.
-GRUMPS_SUBREDDIT = 'tdasplayground' # Subreddit new videos will be submitted to.
+GRUMPS_SUBREDDIT = 'gamegrumps' # Subreddit new videos will be submitted to.
 GRUMPOUT_NAME = 'Grump Out'
 GRUMPOUT_PL = 'UUAQ0o3l-H3y_n56C3yJ9EHA' # Uploads playlist for Grump Out.
 VID_TITLE = 0
@@ -20,8 +20,6 @@ def main():
     gameGrumps = Youtuber()
     grumpOut = Youtuber()
     initYoutuber(youtube, reddit, gameGrumps, GRUMPS_NAME, GRUMPS_PL, GRUMPS_SUBREDDIT)
-    gameGrumps.numVids -= 1
-    gameGrumps.vidList.remove('p3dMg5t0xnY')
     initYoutuber(youtube, reddit, grumpOut, GRUMPOUT_NAME, GRUMPOUT_PL, GRUMPS_SUBREDDIT)
     verbose('Done!', override=True)
     # Checks for new videos and uploads them when they appear.
