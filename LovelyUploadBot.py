@@ -98,7 +98,7 @@ def main():
             verbose("Checking for new uploads...", override=False)
             gameGrumps.update(youtube)
             grumpOut.update(youtube)
-            controlledSleep(20)
+            controlledSleep(20, 3)
         except KeyboardInterrupt:
             verbose("Keyboard interrupt received, ending violently.")
             return
@@ -135,8 +135,9 @@ def initAPIs():
     return youtube, reddit
 
 # Used to determine how often the bot pings youtube. The interval must be < 60.
-def controlledSleep(interval):
-    timer = abs(60 - localtime(time()).tm_sec)
+# Delay is the number of seconds after 00 the bot should wait to ping.
+def controlledSleep(interval, delay):
+    timer = abs((60 + delay) - localtime(time()).tm_sec)
     while timer > interval: timer -= interval
     sleep(timer)
 
