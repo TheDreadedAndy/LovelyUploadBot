@@ -143,15 +143,15 @@ def controlledSleep(interval):
 # A decorator that ensures the playlist functions will execute until they get a response.
 def ensureConnection(f):
     def g(*args, **kwargs):
-        sleep = 1
+        timer = 1
         while True:
             try:
                 return f(*args, **kwargs)
             except:
                 verbose("Warning! Connection error while getting playlist items!")
                 verbose("Retrying in %d seconds..." % (sleep))
-                time.sleep(sleep)
-                sleep *= 2
+                sleep(timer)
+                timer *= 2
     return g
 
 @ensureConnection
