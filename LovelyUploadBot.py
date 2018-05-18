@@ -150,7 +150,7 @@ def ensureConnection(f):
                 return f(*args, **kwargs)
             except:
                 verbose("Warning! Connection error while getting playlist items!")
-                verbose("Retrying in %d seconds..." % (sleep))
+                verbose("Retrying in %d seconds..." % (timer))
                 sleep(timer)
                 timer *= 2
     return g
