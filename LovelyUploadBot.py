@@ -4,7 +4,9 @@ from time import time, sleep, localtime, strftime
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
-VERBOSE = True # Setting to false suppresses mundane information and most warnings.
+VERBOSE = False # Setting to false suppresses mundane information and most warnings.
+DELAY = 5
+INTERVAL = 20
 VID_TITLE = 0
 VID_URL = 1
 GRUMPS_NAME = 'Game Grumps'
@@ -47,7 +49,9 @@ class Youtuber(object):
 
     def update(self, youtube):
         self.getLatestVideo(youtube)
-        if self.uploadQueue:
+        # Posting too much at a time can result in a shadow ban, so I limit the
+        # number of parallel posts to 3.
+        if self.uploadQueue and len(self.uploadQueue) <= 3:
             verbose("Found new content uploaded by %s!" % (self.name))
             for vid in self.uploadQueue.copy():
                 try:
@@ -57,6 +61,10 @@ class Youtuber(object):
                     verbose('Submitted video \"%s\"' % (vid[VID_TITLE]))
                 except Exception as e:
                     verbose(e)
+        elif self.uploadQueue and len(self.uploadQueue) > 3:
+            verbose("Warning! More than 3 videos detected. Exiting.")
+            verbose("These videos were detected: %s" % (str(self.uploadQueue)))
+            raise Exception("Too many videos detected.")
         else: verbose("No new uploads found for channel %s." % (self.name), override=False)
 
     def getLatestVideo(self, youtube):
@@ -64,7 +72,13 @@ class Youtuber(object):
         # has increased, and returns the new videos if so.
         https, pl = getPlaylistItems(youtube, self.plID)
         newNumVids = pl['pageInfo']['totalResults']
-        if newNumVids <= self.numVids: return
+        if newNumVids == self.numVids: return
+        elif newNumVids < self.numVids:
+            # Regenerates the video list if the given channel removes a video.
+            verbose('Video removed by channel %s, reinitializing.' % (self.name))
+            self.numVids = newNumVids
+            self.genVidList(youtube)
+            return
         dVids = newNumVids - self.numVids
         self.numVids = newNumVids
         i = 0
@@ -98,7 +112,7 @@ def main():
             verbose("Checking for new uploads...", override=False)
             gameGrumps.update(youtube)
             grumpOut.update(youtube)
-            controlledSleep(20, 3)
+            controlledSleep(INTERVAL, DELAY)
         except KeyboardInterrupt:
             verbose("Keyboard interrupt received, ending violently.")
             return
