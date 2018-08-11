@@ -4,7 +4,7 @@ from time import time, sleep, localtime, strftime
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
-VERBOSE = False # Setting to false suppresses mundane information and most warnings.
+VERBOSE = True # Setting to false suppresses mundane information and most warnings.
 DELAY = 5
 INTERVAL = 20
 VID_TITLE = 0
