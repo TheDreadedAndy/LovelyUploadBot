@@ -75,13 +75,16 @@ class Youtuber(object):
         if newNumVids == self.numVids: return
         elif newNumVids < self.numVids:
             # Regenerates the video list if the given channel removes a video.
+            verbose('Incoming: %d, Stored: %d' % (newNumVids, self.numVids))
             verbose('Video removed by channel %s, reinitializing.' % (self.name))
             self.numVids = newNumVids
             self.genVidList(youtube)
             return
+        verbose('Incoming: %d, Stored: %d' % (newNumVids, self.numVids))
         dVids = newNumVids - self.numVids
         self.numVids = newNumVids
         i = 0
+        loop = 0
         while i < dVids:
             # Searches each page of the playlist for new videos until it has found them all.
             for item in pl['items']:
@@ -96,7 +99,8 @@ class Youtuber(object):
             if 'nextPageToken' in pl.keys():
                 https, pl = getNextPlPage(youtube, https, pl)
             elif i < dVids:
-                verbose('Warning: Loop reached while searching for latest video!', override=False)
+                loop += 1
+                verbose('Warning: Loop %d reached while searching for latest video!' % (loop))
                 https, pl = getPlaylistItems(youtube, self.plID)
 
 def main():
