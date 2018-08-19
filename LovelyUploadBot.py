@@ -1,6 +1,6 @@
 import praw
 import os
-from time import time, sleep, localtime, strftime
+from time import time, gmtime, sleep, localtime, strftime
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
@@ -75,12 +75,9 @@ class Youtuber(object):
         if newNumVids == self.numVids: return
         elif newNumVids < self.numVids:
             # Regenerates the video list if the given channel removes a video.
-            verbose('Incoming: %d, Stored: %d' % (newNumVids, self.numVids))
             verbose('Video removed by channel %s, reinitializing.' % (self.name))
-            self.numVids = newNumVids
-            self.genVidList(youtube)
+            self.reInit(youtube)
             return
-        verbose('Incoming: %d, Stored: %d' % (newNumVids, self.numVids))
         dVids = newNumVids - self.numVids
         self.numVids = newNumVids
         i = 0
@@ -90,18 +87,36 @@ class Youtuber(object):
             for item in pl['items']:
                 id = item['contentDetails']['videoId']
                 if id not in self.vidList:
-                    title = item['snippet']['title']
-                    url = "https://www.youtube.com/watch?v=%s" % (id)
-                    self.vidList.add(id)
-                    self.uploadQueue.add((title, url))
-                    i += 1
+                    # Check if the video was actually uploaded today and add it if yes.
+                    if checkTime(item['contentDetails']['videoPublishedAt']):
+                        title = item['snippet']['title']
+                        url = "https://www.youtube.com/watch?v=%s" % (id)
+                        self.vidList.add(id)
+                        self.uploadQueue.add((title, url))
+                        i += 1
+                    else:
+                        verbose('Found a stray video not uploaded today. Reinitializing.')
+                        self.reInit(youtube)
+                        return
             # Loads the next page if there is one.
             if 'nextPageToken' in pl.keys():
                 https, pl = getNextPlPage(youtube, https, pl)
             elif i < dVids:
+                # Because googles information isn't always accurate, we can get
+                # an infinite search loop.
                 loop += 1
                 verbose('Warning: Loop %d reached while searching for latest video!' % (loop))
+                if loop >= 5:
+                    verbose('Am I trapped? Reinitializing.')
+                    self.reInit(youtube)
+                    return
                 https, pl = getPlaylistItems(youtube, self.plID)
+
+    def reInit(self, youtube):
+        # Reinits the vidlist.
+        https, pl = getPlaylistItems(youtube, self.plID)
+        self.numVids = pl['pageInfo']['totalResults']
+        self.genVidList(youtube)
 
 def main():
     verbose('Initializing...')
@@ -183,5 +198,14 @@ def getPlaylistItems(youtube, plID):
 def getNextPlPage(youtube, https, pl):
     https = youtube.playlistItems().list_next(https, pl)
     return https, https.execute()
+
+def checkTime(date):
+    # Verifys that the publication date matches todays date.
+    # Thanks /u/flashmozzg
+    year, month, day = date[0:date.find('T')].split('-')
+    vidDate = (int(year), int(month), int(day))
+    t = gmtime(time())
+    today = (t.tm_year, t.tm_mon, t.tm_mday)
+    return vidDate == today
 
 if __name__ == "__main__": main()
